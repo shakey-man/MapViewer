@@ -527,8 +527,8 @@ namespace MapViewer
             {
                 PopulateSymbolLV(FilterSymbols(list));
 #if CREF
-                if (_crefOn && (list.Count > 0) && (list.FirstOrDefault().ModuleName != null))
-                    _tree = tlv_Init(list.FirstOrDefault().ModuleName);
+                if (_crefOn && (list.Count > 0) && (list.FirstOrDefault().ModulePath != null))
+                    _tree = tlv_Init(list.FirstOrDefault().ModulePath);
 #endif
             }).ContinueWith(antecedent => { Button_status(true); }); /* do always */
 
@@ -649,11 +649,11 @@ namespace MapViewer
             // Go through all the symbols and select those that match the currently selected modules
             List<Symbol> syms = mods.SelectMany(m => _syms.Symbols.Where(s =>
             {
-                if (m.ModuleName == "") return false;
+                if (m.ModulePath == "") return false;
 
-                string mod = m.ModuleName;
+                string mod = m.ModulePath;
                 // Special for newlib, module name turns out to be of the form ..lib/libc.a(lib_a-rget.o), while dwarf file name = rget.c, so we takeout all "lib_a" prefix
-                if (m.ModuleName.Contains("lib_a-"))
+                if (m.ModulePath.Contains("lib_a-"))
                     mod = mod.Replace("lib_a-", String.Empty);
 
                 Match m2 = Regex.Match(mod, @"[^\/\\(]+(?=.o\)?$)");

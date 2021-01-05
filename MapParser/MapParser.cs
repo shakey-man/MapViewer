@@ -93,6 +93,7 @@ namespace MapViewer
 
     public class Module
     {
+        public string ModulePath { get; set; }
         public string ModuleName { get; set; }
         public UInt32 TextSize { get; set; }
         public UInt32 BSSSize{ get; set; }
@@ -107,7 +108,16 @@ namespace MapViewer
 
         public Module(string mod, UInt32 txt, UInt32 bss, UInt32 data)
         {
-            ModuleName = mod;
+            ModulePath = mod;
+            TextSize = txt;
+            BSSSize = bss;
+            DataSize = data;
+        }
+
+        public Module(string mod, string fname, UInt32 txt, UInt32 bss, UInt32 data)
+        {
+            ModulePath = mod;
+            ModuleName = fname;
             TextSize = txt;
             BSSSize = bss;
             DataSize = data;
@@ -115,7 +125,7 @@ namespace MapViewer
 
         public Module(string mod, UInt32 siz)
         {
-            ModuleName = mod;
+            ModulePath = mod;
             Size = siz;
             Symbols = new List<Symbol>();
         }
@@ -230,14 +240,14 @@ namespace MapViewer
                 if (IsModule(line, out m)) // fixme: module line may also be a symbol line eg: .text.ulli2a   0x00000ca0      0x134 lib/tinyprintf/tinyprintf.o
                 {
                     // Add the module into the (current) section
-                    if (!Sections.LastOrDefault().Modules.Exists(x => x.ModuleName == m.ModuleName))
+                    if (!Sections.LastOrDefault().Modules.Exists(x => x.ModulePath == m.ModulePath))
                     {
                         Sections.LastOrDefault().Modules.Add(m); moduleIdx++; modSymSiz = 0;
                     }
                     else
                     {
                         // Increment the size of the module
-                        Sections.LastOrDefault().Modules.Where(x => x.ModuleName == m.ModuleName).First().Size += m.Size;
+                        Sections.LastOrDefault().Modules.Where(x => x.ModulePath == m.ModulePath).First().Size += m.Size;
                     }
                     continue;
                 }
@@ -251,8 +261,8 @@ namespace MapViewer
 
                     //if (sym.SymbolName.Contains("*fill*"))
                     //    Debug.Write("oops");
-                    sym.ModuleName = mod.ModuleName;
-                    sym.GetFileFromModuleName(mod.ModuleName);
+                    sym.ModuleName = mod.ModulePath;
+                    sym.GetFileFromModuleName(mod.ModulePath);
                     uint siz = 0;
                     // update the size of the previous symbol, given that we know the address of the current symbol
                     if (mod.Symbols != null && mod.Symbols.Count > 0)
@@ -286,21 +296,21 @@ namespace MapViewer
             // For each entry in the Tmap, find it's module and sum over that module
             foreach (Symbol t in TextSegment)
             {
-                if (!ModuleMap.Exists(x => String.Equals(x.ModuleName, t.ModuleName)))
+                if (!ModuleMap.Exists(x => String.Equals(x.ModulePath, t.ModuleName)))
                 {
                     AddModule(t);
                 }
             }
             foreach (Symbol t in BSS)
             {
-                if (!ModuleMap.Exists(x => String.Equals(x.ModuleName, t.ModuleName)))
+                if (!ModuleMap.Exists(x => String.Equals(x.ModulePath, t.ModuleName)))
                 {
                     AddModule(t);
                 }
             }
             foreach (Symbol t in Data)
             {
-                if (!ModuleMap.Exists(x => String.Equals(x.ModuleName, t.ModuleName)))
+                if (!ModuleMap.Exists(x => String.Equals(x.ModulePath, t.ModuleName)))
                 {
                     AddModule(t);
                 }
@@ -334,14 +344,25 @@ namespace MapViewer
             Debug.WriteLineIf(DEBUG,"Module BSS Size:" + sumb.ToString());
             UInt32 sumd = (UInt32)Data.Where(x => String.Equals(x.ModuleName, t.ModuleName)).Sum(x => x.Size);
             Debug.WriteLineIf(DEBUG,"Module DATA Size:" + sumd.ToString());
-            ModuleMap.Add(new Module(t.ModuleName, sumt, sumb, sumd));
+            //ModuleMap.Add(new Module(t.ModuleName, sumt, sumb, sumd));
+            if (t.FileName == string.Empty)
+            {
+                string mn = t.ModuleName;
+
+                string fname = mn.Substring(mn.LastIndexOf('\\') + 1);
+                ModuleMap.Add(new Module(t.ModuleName, fname, sumt, sumb, sumd));
+            }
+            else
+            {
+                ModuleMap.Add(new Module(t.ModuleName, t.FileName, sumt, sumb, sumd));
+            }
         }
 
         void PrintModuleMap()
         {
             foreach (Module e in ModuleMap)
             {
-                Debug.WriteLineIf(DEBUG,e.TextSize + "\t\t" + e.ModuleName);
+                Debug.WriteLineIf(DEBUG,e.TextSize + "\t\t" + e.ModulePath);
             }
         }
 
